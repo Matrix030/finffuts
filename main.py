@@ -1,5 +1,5 @@
 def main():
-    print("Hello from finffuts!")
+    print("Finance app starting...")
 
 
 if __name__ == "__main__":
