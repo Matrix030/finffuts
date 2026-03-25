@@ -19,3 +19,12 @@ def init_db():
             )
         """)
     print("Database ready.")
+
+
+def get_recent_transactions(limit: int = 20) -> list:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT date, name, amount, category FROM transactions ORDER BY date DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return rows
