@@ -5,6 +5,7 @@ from db import init_db, get_recent_transactions, recategorize_all, get_spending_
 from import_csv import import_csv
 from charts import chart_category
 from ask import ask_question
+from review import run_reviewer
 
 
 def bat_print(text: str, language: str = "tsv"):
@@ -40,6 +41,8 @@ def main():
     parser.add_argument("--summary", action="store_true", help="Show total spending grouped by category")
     parser.add_argument("--chart", metavar="TYPE", help="Show a chart (use: category)")
     parser.add_argument("--ask", metavar="QUESTION", help="Ask a natural language question about your finances")
+    parser.add_argument("--review", action="store_true", help="Interactively review and categorize transactions")
+    parser.add_argument("--review-all", action="store_true", help="Review all transactions, not just uncategorized")
     args = parser.parse_args()
 
     sys.stderr.write("Finance app starting...\n")
@@ -79,6 +82,12 @@ def main():
     if args.ask:
         result = ask_question(args.ask)
         bat_print(result)
+
+    if args.review:
+        run_reviewer(uncategorized_only=True)
+
+    if args.review_all:
+        run_reviewer(uncategorized_only=False)
 
     if args.list_txns:
         rows = get_recent_transactions(args.limit)
