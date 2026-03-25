@@ -1,8 +1,22 @@
 import argparse
-from db import init_db, get_recent_transactions, recategorize_all, get_spending_by_category
+import subprocess
+import sys
+from db import init_db, get_recent_transactions, recategorize_all, get_spending_by_category, apply_rent_rule
 from import_csv import import_csv
 from charts import chart_category
 from ask import ask_question
+
+
+def bat_print(text: str, language: str = "tsv"):
+    """Print text through bat for syntax highlighting, fall back to plain print."""
+    try:
+        subprocess.run(
+            ["bat", "--language", language, "--style", "grid,numbers", "--paging", "never", "-"],
+            input=text.encode(),
+            check=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        print(text)
 
 
 def print_transactions(rows: list):
@@ -10,13 +24,11 @@ def print_transactions(rows: list):
         print("No transactions found.")
         return
 
-    print(f"\n{'DATE':<12} {'AMOUNT':>10}  {'CATEGORY':<16}  NAME")
-    print("-" * 72)
+    lines = ["DATE\tAMOUNT\tCATEGORY\tNAME"]
     for date, name, amount, category in rows:
         label = category if category else "Uncategorized"
-        amount_str = f"{amount:>+.2f}"
-        print(f"{date:<12} {amount_str:>10}  {label:<16}  {name}")
-    print()
+        lines.append(f"{date}\t{amount:+.2f}\t{label}\t{name}")
+    bat_print("\n".join(lines))
 
 
 def main():
@@ -30,7 +42,7 @@ def main():
     parser.add_argument("--ask", metavar="QUESTION", help="Ask a natural language question about your finances")
     args = parser.parse_args()
 
-    print("Finance app starting...")
+    sys.stderr.write("Finance app starting...\n")
     init_db()
 
     if args.import_path:
@@ -38,7 +50,8 @@ def main():
 
     if args.recategorize:
         count = recategorize_all()
-        print(f"Recategorized {count} transactions.")
+        rent_count = apply_rent_rule()
+        print(f"Recategorized {count} transactions ({rent_count} marked as Rent).")
 
     if args.summary:
         rows = get_spending_by_category()
@@ -46,14 +59,12 @@ def main():
             print("No expense transactions found.")
         else:
             total = sum(amount for _, amount in rows)
-            print(f"\n{'CATEGORY':<16}  {'TOTAL':>10}  {'SHARE':>6}")
-            print("-" * 38)
+            lines = ["CATEGORY\tTOTAL\tSHARE"]
             for category, amount in rows:
                 share = (amount / total) * 100
-                print(f"{category:<16}  {amount:>10.2f}  {share:>5.1f}%")
-            print("-" * 38)
-            print(f"{'TOTAL':<16}  {total:>10.2f}")
-            print()
+                lines.append(f"{category}\t{amount:.2f}\t{share:.1f}%")
+            lines.append(f"TOTAL\t{total:.2f}\t100.0%")
+            bat_print("\n".join(lines))
 
     if args.chart:
         if args.chart == "category":
@@ -67,8 +78,7 @@ def main():
 
     if args.ask:
         result = ask_question(args.ask)
-        print(result)
-        print()
+        bat_print(result)
 
     if args.list_txns:
         rows = get_recent_transactions(args.limit)

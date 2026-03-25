@@ -11,7 +11,9 @@ RULES = [
 
 DEFAULT = "Other"
 
-VALID_CATEGORIES = {"Food", "Transport", "Subscriptions", "Shopping", "Utilities", "Other"}
+VALID_CATEGORIES = {"Food", "Transport", "Subscriptions", "Shopping", "Utilities", "Rent", "Other"}
+
+RENT_AMOUNTS = {650.0, 730.0, 725.0, 395.0}
 
 _OLLAMA_URL = "http://localhost:11434/api/chat"
 _MODEL = "gpt-oss:20b"

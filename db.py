@@ -1,4 +1,5 @@
 import sqlite3
+import sys
 
 DB_PATH = "finance.db"
 
@@ -24,7 +25,19 @@ def init_db():
                 category TEXT
             )
         """)
-    print("Database ready.")
+    sys.stderr.write("Database ready.\n")
+
+
+def apply_rent_rule() -> int:
+    from categorize import RENT_AMOUNTS
+    placeholders = ",".join("?" * len(RENT_AMOUNTS))
+    amounts = [-abs(a) for a in RENT_AMOUNTS]
+    with get_connection() as conn:
+        cursor = conn.execute(
+            f"UPDATE transactions SET category = 'Rent' WHERE amount IN ({placeholders})",
+            amounts,
+        )
+    return cursor.rowcount
 
 
 def recategorize_all() -> int:
