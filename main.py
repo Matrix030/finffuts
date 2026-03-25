@@ -2,6 +2,7 @@ import argparse
 from db import init_db, get_recent_transactions, recategorize_all, get_spending_by_category
 from import_csv import import_csv
 from charts import chart_category
+from ask import ask_question
 
 
 def print_transactions(rows: list):
@@ -26,6 +27,7 @@ def main():
     parser.add_argument("--recategorize", action="store_true", help="Re-run categorization rules on all existing transactions")
     parser.add_argument("--summary", action="store_true", help="Show total spending grouped by category")
     parser.add_argument("--chart", metavar="TYPE", help="Show a chart (use: category)")
+    parser.add_argument("--ask", metavar="QUESTION", help="Ask a natural language question about your finances")
     args = parser.parse_args()
 
     print("Finance app starting...")
@@ -62,6 +64,11 @@ def main():
                 chart_category(rows)
         else:
             print(f"Unknown chart type: {args.chart!r}. Available: category")
+
+    if args.ask:
+        result = ask_question(args.ask)
+        print(result)
+        print()
 
     if args.list_txns:
         rows = get_recent_transactions(args.limit)
