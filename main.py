@@ -1,6 +1,7 @@
 import argparse
 from db import init_db, get_recent_transactions, recategorize_all, get_spending_by_category
 from import_csv import import_csv
+from charts import chart_category
 
 
 def print_transactions(rows: list):
@@ -24,6 +25,7 @@ def main():
     parser.add_argument("--limit", type=int, default=20, metavar="N", help="Number of transactions to show (default 20)")
     parser.add_argument("--recategorize", action="store_true", help="Re-run categorization rules on all existing transactions")
     parser.add_argument("--summary", action="store_true", help="Show total spending grouped by category")
+    parser.add_argument("--chart", metavar="TYPE", help="Show a chart (use: category)")
     args = parser.parse_args()
 
     print("Finance app starting...")
@@ -50,6 +52,16 @@ def main():
             print("-" * 38)
             print(f"{'TOTAL':<16}  {total:>10.2f}")
             print()
+
+    if args.chart:
+        if args.chart == "category":
+            rows = get_spending_by_category()
+            if not rows:
+                print("No expense transactions found.")
+            else:
+                chart_category(rows)
+        else:
+            print(f"Unknown chart type: {args.chart!r}. Available: category")
 
     if args.list_txns:
         rows = get_recent_transactions(args.limit)
