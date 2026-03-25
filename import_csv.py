@@ -43,7 +43,7 @@ def import_csv(path: str):
                     continue
 
                 tx_id = make_id(date, name, amount_raw)
-                category = categorize(name)
+                category = categorize(name, conn)
 
                 try:
                     conn.execute(

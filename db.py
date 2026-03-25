@@ -18,6 +18,12 @@ def init_db():
                 category TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS merchant_map (
+                name     TEXT PRIMARY KEY,
+                category TEXT
+            )
+        """)
     print("Database ready.")
 
 
@@ -27,9 +33,10 @@ def recategorize_all() -> int:
         rows = conn.execute("SELECT id, name FROM transactions").fetchall()
         updated = 0
         for tx_id, name in rows:
+            category = categorize(name, conn)
             conn.execute(
                 "UPDATE transactions SET category = ? WHERE id = ?",
-                (categorize(name), tx_id),
+                (category, tx_id),
             )
             updated += 1
     return updated
