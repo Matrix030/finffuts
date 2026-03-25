@@ -1,5 +1,5 @@
 import argparse
-from db import init_db, get_recent_transactions
+from db import init_db, get_recent_transactions, recategorize_all
 from import_csv import import_csv
 
 
@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--import", dest="import_path", metavar="FILE", help="Import a Chase CSV file")
     parser.add_argument("--list", dest="list_txns", action="store_true", help="List recent transactions")
     parser.add_argument("--limit", type=int, default=20, metavar="N", help="Number of transactions to show (default 20)")
+    parser.add_argument("--recategorize", action="store_true", help="Re-run categorization rules on all existing transactions")
     args = parser.parse_args()
 
     print("Finance app starting...")
@@ -29,6 +30,10 @@ def main():
 
     if args.import_path:
         import_csv(args.import_path)
+
+    if args.recategorize:
+        count = recategorize_all()
+        print(f"Recategorized {count} transactions.")
 
     if args.list_txns:
         rows = get_recent_transactions(args.limit)

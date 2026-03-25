@@ -1,6 +1,7 @@
 import csv
 import hashlib
 from db import get_connection
+from categorize import categorize
 
 REQUIRED_COLUMNS = {"Posting Date", "Description", "Amount"}
 
@@ -42,11 +43,12 @@ def import_csv(path: str):
                     continue
 
                 tx_id = make_id(date, name, amount_raw)
+                category = categorize(name)
 
                 try:
                     conn.execute(
                         "INSERT INTO transactions (id, date, name, amount, category) VALUES (?, ?, ?, ?, ?)",
-                        (tx_id, date, name, amount, ""),
+                        (tx_id, date, name, amount, category),
                     )
                     inserted += 1
                 except Exception:

@@ -21,6 +21,20 @@ def init_db():
     print("Database ready.")
 
 
+def recategorize_all() -> int:
+    from categorize import categorize
+    with get_connection() as conn:
+        rows = conn.execute("SELECT id, name FROM transactions").fetchall()
+        updated = 0
+        for tx_id, name in rows:
+            conn.execute(
+                "UPDATE transactions SET category = ? WHERE id = ?",
+                (categorize(name), tx_id),
+            )
+            updated += 1
+    return updated
+
+
 def get_recent_transactions(limit: int = 20) -> list:
     with get_connection() as conn:
         rows = conn.execute(
