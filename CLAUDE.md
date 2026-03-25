@@ -16,11 +16,12 @@ Apply these rules at every step:
 
 ## Stack (fixed unless something breaks)
 
-- Python
+- Python (managed with `uv`)
 - SQLite
-- Textual (TUI)
-- CSV import first
-- Teller later
+- Textual (TUI — not yet built)
+- CSV import (Chase format)
+- ollama + `gpt-oss:20b` for local LLM (categorization fallback + NL queries)
+- Teller (planned)
 
 ## Project goal
 
