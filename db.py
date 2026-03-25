@@ -35,6 +35,18 @@ def recategorize_all() -> int:
     return updated
 
 
+def get_spending_by_category() -> list:
+    with get_connection() as conn:
+        rows = conn.execute("""
+            SELECT category, SUM(amount) as total
+            FROM transactions
+            WHERE amount < 0
+            GROUP BY category
+            ORDER BY total ASC
+        """).fetchall()
+    return rows
+
+
 def get_recent_transactions(limit: int = 20) -> list:
     with get_connection() as conn:
         rows = conn.execute(
