@@ -25,6 +25,8 @@ def import_csv(path: str):
             return
 
         with get_connection() as conn:
+            from embeddings import load_merchant_embeddings
+            merchant_embeddings = load_merchant_embeddings(conn)
             for i, row in enumerate(reader, start=2):  # row 1 is header
                 date = row.get("Posting Date", "").strip()
                 name = row.get("Description", "").strip()
@@ -43,7 +45,7 @@ def import_csv(path: str):
                     continue
 
                 tx_id = make_id(date, name, amount_raw)
-                category = categorize(name, conn)
+                category = categorize(name, conn, merchant_embeddings)
 
                 try:
                     conn.execute(

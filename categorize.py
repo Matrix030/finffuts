@@ -79,21 +79,26 @@ def _keyword_match(cleaned: str) -> str | None:
     return None
 
 
-def categorize(name: str, conn=None) -> str:
+def categorize(name: str, conn=None, merchant_embeddings=None) -> str:
     """
     Categorize a transaction name using a hybrid approach:
-      1. Keyword rules (fast, always applied first)
-      2. merchant_map lookup (learned from past categorizations)
-      3. Fallback to DEFAULT
+      1. Keyword rules
+      2. Exact merchant_map lookup
+      3. Embedding similarity match
+      4. GPT fallback
 
     If conn is provided, stores the result in merchant_map for future reuse.
+    merchant_embeddings is a pre-loaded list from embeddings.load_merchant_embeddings()
+    to avoid repeated DB reads in bulk operations.
     """
+    from embeddings import get_embedding, find_similar_merchant, store_embedding
+
     cleaned = clean_name(name)
 
     # 1. Keyword rules
     category = _keyword_match(cleaned)
 
-    # 2. merchant_map lookup (only if keyword didn't match)
+    # 2. Exact merchant_map lookup
     if category is None and conn is not None:
         row = conn.execute(
             "SELECT category FROM merchant_map WHERE name = ?", (cleaned,)
@@ -101,16 +106,31 @@ def categorize(name: str, conn=None) -> str:
         if row:
             category = row[0]
 
-    # 3. GPT fallback
+    # 3. Embedding similarity match
+    if category is None and merchant_embeddings is not None:
+        match = find_similar_merchant(cleaned, merchant_embeddings)
+        if match:
+            matched_name, category, score = match
+            print(f"  Embedding match: {cleaned} → {matched_name} (score: {score:.2f})")
+
+    # 4. GPT fallback
     if category is None:
         print(f"  GPT categorizing: {cleaned}")
         category = categorize_with_gpt(cleaned)
 
-    # Persist to merchant_map for future reuse
+    # Persist to merchant_map and store embedding for future similarity matching
     if conn is not None:
         conn.execute(
             "INSERT OR REPLACE INTO merchant_map (name, category) VALUES (?, ?)",
             (cleaned, category),
         )
+        # Store embedding if we don't already have one
+        existing = conn.execute(
+            "SELECT embedding FROM merchant_map WHERE name = ?", (cleaned,)
+        ).fetchone()
+        if existing and existing[0] is None:
+            vec = get_embedding(cleaned)
+            if vec is not None:
+                store_embedding(conn, cleaned, vec)
 
     return category

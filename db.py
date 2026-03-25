@@ -21,10 +21,15 @@ def init_db():
         """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS merchant_map (
-                name     TEXT PRIMARY KEY,
-                category TEXT
+                name      TEXT PRIMARY KEY,
+                category  TEXT,
+                embedding TEXT
             )
         """)
+        # migrate existing merchant_map tables that lack the embedding column
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(merchant_map)").fetchall()]
+        if "embedding" not in cols:
+            conn.execute("ALTER TABLE merchant_map ADD COLUMN embedding TEXT")
     sys.stderr.write("Database ready.\n")
 
 
@@ -42,11 +47,13 @@ def apply_rent_rule() -> int:
 
 def recategorize_all() -> int:
     from categorize import categorize
+    from embeddings import load_merchant_embeddings
     with get_connection() as conn:
+        merchant_embeddings = load_merchant_embeddings(conn)
         rows = conn.execute("SELECT id, name FROM transactions").fetchall()
         updated = 0
         for tx_id, name in rows:
-            category = categorize(name, conn)
+            category = categorize(name, conn, merchant_embeddings)
             conn.execute(
                 "UPDATE transactions SET category = ? WHERE id = ?",
                 (category, tx_id),
