@@ -39,6 +39,7 @@ Rules:
 - For spending questions, filter amount < 0 and use ABS(amount) or SUM(amount).
 - When the user mentions a category name, match it against the known categories above (case-insensitive).
 - Limit open-ended queries to 20 rows unless the user asks for more.
+- Do not have id in the response unless explicitly mentioned by the user
 """
 
 
