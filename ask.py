@@ -6,20 +6,29 @@ from db import get_connection
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "gpt-oss:20b"
 
-SCHEMA = """
-Table: transactions
-Columns:
-  id       TEXT PRIMARY KEY
-  date     TEXT  (format: MM/DD/YYYY)
-  name     TEXT  (merchant / description)
-  amount   REAL  (negative = expense, positive = income)
-  category TEXT  (Transport, Food, Shopping, Subscriptions, Other)
-"""
+def _get_db_categories() -> list[str]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT category FROM transactions WHERE category IS NOT NULL AND category != '' ORDER BY category"
+        ).fetchall()
+    return [r[0] for r in rows]
 
-SYSTEM_PROMPT = f"""You are a SQL assistant for a personal finance SQLite database.
+
+def _build_system_prompt() -> str:
+    categories = _get_db_categories()
+    category_list = ", ".join(categories) if categories else "None yet"
+    return f"""You are a SQL assistant for a personal finance SQLite database.
 
 Schema:
-{SCHEMA}
+  Table: transactions
+  Columns:
+    id       TEXT PRIMARY KEY
+    date     TEXT  (format: MM/DD/YYYY)
+    name     TEXT  (merchant / description)
+    amount   REAL  (negative = expense, positive = income)
+    category TEXT
+
+Current categories in the database: {category_list}
 
 Rules:
 - Return ONLY a single raw SQL SELECT statement. No explanation, no markdown, no code fences.
@@ -28,15 +37,17 @@ Rules:
 - Dates are stored as MM/DD/YYYY strings. Use strftime or string comparison carefully.
 - For "this month" use the current month. Today is date('now').
 - For spending questions, filter amount < 0 and use ABS(amount) or SUM(amount).
+- When the user mentions a category name, match it against the known categories above (case-insensitive).
 - Limit open-ended queries to 20 rows unless the user asks for more.
 """
 
 
 def _call_ollama(question: str) -> str:
+    system_prompt = _build_system_prompt()
     payload = json.dumps({
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": question},
         ],
         "stream": False,
